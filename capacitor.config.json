@@ -1,0 +1,12 @@
+{
+  "appId": "com.bigmanj.musichub",
+  "appName": "bigmanj musix hub",
+  "webDir": ".",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "backgroundColor": "#000000",
+    "allowMixedContent": true
+  }
+}
