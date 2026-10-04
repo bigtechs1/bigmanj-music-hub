@@ -1,0 +1,26 @@
+{
+  "name": "bigmanj-music-hub",
+  "version": "1.0.0",
+  "description": "Your music hub. Listen, download, and manage your music.",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx serve .",
+    "cap:init": "npx cap init",
+    "cap:add:android": "npx cap add android",
+    "cap:sync": "npx cap sync",
+    "cap:build": "npx cap build android"
+  },
+  "keywords": [
+    "music",
+    "player",
+    "pwa",
+    "capacitor"
+  ],
+  "author": "BIGMANJ",
+  "license": "ISC",
+  "devDependencies": {
+    "@capacitor/android": "^6.0.0",
+    "@capacitor/cli": "^6.0.0",
+    "@capacitor/core": "^6.0.0"
+  }
+}
