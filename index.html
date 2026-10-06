@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ᑲіgmᥲᥒȷ mᥙsі᥊ һᥙᑲ</title>
+    
+    <link rel="stylesheet" href="css/theme.css">
+    <link rel="stylesheet" href="css/splash.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/player.css">
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#000000">
+</head>
+<body>
+
+    <!-- SPLASH SCREEN -->
+    <div id="splash-screen">
+        <div class="splash-content">
+            <div class="splash-logo">
+                <svg width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 18V5l12-2v13"></path>
+                    <circle cx="6" cy="18" r="3"></circle>
+                    <circle cx="18" cy="16" r="3"></circle>
+                </svg>
+            </div>
+            <div class="splash-text">
+                <span class="splash-title">ᑲіgmᥲᥒȷ mᥙsі᥊ һᥙᑲ</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOGIN / SIGNUP SCREEN -->
+    <div id="screen-login" class="login-screen hidden">
+        <div class="login-content">
+            <h1 class="login-title">ᑲіgmᥲᥒȷ mᥙsі᥊ һᥙᑲ</h1>
+            <p class="login-subtitle">Your music hub</p>
+            
+            <input type="text" id="signup-name" placeholder="Full Name" class="login-input">
+            <input type="text" id="signup-username" placeholder="Username" class="login-input">
+            <input type="email" id="signup-email" placeholder="Email" class="login-input">
+            <input type="password" id="signup-password" placeholder="Password" class="login-input">
+            
+            <label for="signup-avatar" class="avatar-upload-label">
+                <span id="avatar-label-text">Upload Profile Photo (Optional)</span>
+                <input type="file" id="signup-avatar" accept="image/*" class="hidden">
+            </label>
+            
+            <button id="create-account-btn" class="login-btn" data-mode="signup">Create Account</button>
+            <button id="login-toggle-btn" class="login-toggle-btn">Already have an account? Login</button>
+        </div>
+    </div>
+
+    <!-- MAIN APP CONTAINER -->
+    <div id="app-container" class="hidden">
+        
+        <header class="app-header">
+            <h2>ᑲіgmᥲᥒȷ mᥙsі᥊ һᥙᑲ</h2>
+        </header>
+
+        <main class="app-content">
+            <!-- HOME SCREEN -->
+            <div id="screen-home" class="screen active">
+                <div class="search-bar">
+                    <input type="text" id="search-input" placeholder="Search for songs, artists...">
+                </div>
+                <h3 class="section-title">Trending Now</h3>
+                <div id="song-list" class="song-list"></div>
+            </div>
+            
+            <!-- LIBRARY SCREEN -->
+            <div id="screen-library" class="screen">
+                <h3 class="section-title">Your Library</h3>
+                <div class="library-tabs">
+                    <button class="library-tab active" data-tab="liked">Liked</button>
+                    <button class="library-tab" data-tab="downloaded">Downloaded</button>
+                    <button class="library-tab" data-tab="playlists">Playlists</button>
+                </div>
+                <div id="library-content" class="library-content"></div>
+            </div>
+
+            <!-- WHATMUSIC SCREEN -->
+            <div id="screen-whatmusic" class="screen">
+                <h3 class="section-title">WhatMusic</h3>
+                <p class="whatmusic-desc">Upload a short audio clip to identify the song.</p>
+                <input type="file" id="whatmusic-file-input" accept="audio/*" class="login-input">
+                <button id="whatmusic-upload-button" class="login-btn" style="margin-top: 10px;">Identify Song</button>
+                <p id="whatmusic-status" class="whatmusic-status"></p>
+                <div id="whatmusic-result" class="hidden"></div>
+            </div>
+
+            <!-- PROFILE SCREEN -->
+            <div id="screen-profile" class="screen">
+                <h3 class="section-title">Profile</h3>
+                <div class="profile-card">
+                    <img id="profile-avatar" src="" alt="Avatar" class="profile-avatar">
+                    <h4 id="profile-name">User Name</h4>
+                    <p id="profile-username">@username</p>
+                    <p id="profile-email" class="profile-email"></p>
+                </div>
+                
+                <h3 class="section-title" style="margin-top: 24px;">Settings</h3>
+                <div class="settings-list">
+                    <div class="setting-item">
+                        <span>Theme</span>
+                        <select id="theme-select" class="theme-select">
+                            <option value="system">Follow System</option>
+                            <option value="dark">Dark</option>
+                            <option value="light">Light</option>
+                        </select>
+                    </div>
+                    <div class="setting-item hidden" id="install-app-container">
+                        <span>Install App</span>
+                        <button id="install-app-btn" class="login-btn" style="width: auto; padding: 8px 16px; font-size: 0.8rem;">Install</button>
+                    </div>
+                    <div class="setting-item">
+                        <span>Logout</span>
+                        <button id="logout-btn" class="login-btn" style="width: auto; padding: 8px 16px; font-size: 0.8rem; background-color: #ef4444;">Logout</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- BOTTOM NAVIGATION -->
+        <nav class="bottom-nav">
+            <button class="nav-item active" data-target="home">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                <span>Home</span>
+            </button>
+            <button class="nav-item" data-target="library">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m16 6 4 14"></path><path d="M12 6v14"></path><path d="M8 8v12"></path><path d="M4 4v16"></path></svg>
+                <span>Library</span>
+            </button>
+            <button class="nav-item" data-target="whatmusic">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <span>WhatMusic</span>
+            </button>
+            <button class="nav-item" data-target="profile">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                <span>Profile</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- FULL SCREEN PLAYER OVERLAY -->
+    <div id="player-screen">
+        <div id="player-card">
+            <div class="player-top-bar">
+                <button id="close-player-btn">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+                <span>Now Playing</span>
+                <button id="player-menu-btn">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>
+                </button>
+            </div>
+
+            <div class="player-art-container">
+                <img id="player-art" src="" alt="Album Art" class="player-art">
+            </div>
+
+            <div class="player-info">
+                <h3 id="player-title">Song Title</h3>
+                <p id="player-artist">Artist Name</p>
+            </div>
+
+            <div class="player-progress-container">
+                <span id="current-time">0:00</span>
+                <div class="progress-track" id="progress-track">
+                    <div class="progress-fill" id="progress-bar"></div>
+                </div>
+                <span id="total-time">0:00</span>
+            </div>
+
+            <div class="player-controls">
+                <button id="shuffle-btn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 3 21 3 21 8"></polyline><line x1="4" y1="20" x2="21" y2="3"></line><polyline points="21 16 21 21 16 21"></polyline><line x1="15" y1="15" x2="21" y2="21"></line><line x1="4" y1="4" x2="9" y2="9"></line></svg></button>
+                <button id="prev-btn"><svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><polygon points="19 20 9 12 19 4 19 20"></polygon><line x1="5" y1="19" x2="5" y2="5" stroke="currentColor" stroke-width="2"></line></svg></button>
+                <button id="play-pause-btn" class="play-main-button">
+                    <svg id="play-icon" width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                    <svg id="pause-icon" class="hidden" width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+                </button>
+                <button id="next-btn"><svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19" stroke="currentColor" stroke-width="2"></line></svg></button>
+                <button id="repeat-btn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg></button>
+            </div>
+
+            <div id="lyrics-card" class="lyrics-card hidden">
+                <div class="lyrics-header">
+                    <span>Lyrics</span>
+                    <button id="copy-lyrics-btn" class="copy-btn">Copy</button>
+                </div>
+                <div id="lyrics-content" class="lyrics-content"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPT LOADING -->
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
