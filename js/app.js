@@ -1,11 +1,11 @@
 // js/app.js
 import { initSplash } from './splash.js';
-import { searchMusic } from './api2.js';
+import { searchMusic, getLyrics } from './api2.js';
 import { playSong, togglePlay, nextSong, prevSong, seekTo } from './player.js';
 import { getLikedSongs, toggleLike, isSongLiked, getDownloadedSongs, isSongDownloaded, downloadSong, getAllPlaylists, logoutUser } from './library.js';
 import { isLoggedIn, createAccount, login, logout, getCurrentUser as getAuthUser, handleAvatarUpload, generateDefaultAvatar } from './auth.js';
 import { initWhatMusic } from './whatmusic.js';
-import { formatViews, showToast, debounce, escapeHtml, generatePlaylistCollage, formatTime } from './utils.js';
+import { showToast, debounce, escapeHtml, generatePlaylistCollage } from './utils.js';
 
 let currentUser = null;
 let currentPlaylistContext = [];
@@ -114,41 +114,168 @@ function setupPWA() {
 function loadHomeFeed() { performSearch('Montagem Rabeta'); }
 function setupSearch() {
     const searchInput = document.getElementById('search-input');
+    const searchTabs = document.querySelectorAll('.search-tab');
     if (!searchInput) return;
-    const performSearchDebounced = debounce(async (query) => { performSearch(query); }, 600);
+    
+    let currentSearchMode = 'songs';
+
+    searchTabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            searchTabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            currentSearchMode = tab.dataset.search;
+            const query = searchInput.value.trim();
+            if (query) performSearch(query, currentSearchMode);
+        });
+    });
+
+    const performSearchDebounced = debounce(async (query) => { performSearch(query, currentSearchMode); }, 600);
     searchInput.addEventListener('input', (e) => performSearchDebounced(e.target.value));
 }
-async function performSearch(query) {
-    const songList = document.getElementById('song-list');
-    if (!songList) return;
+
+async function performSearch(query, mode = 'songs') {
+    const resultsContainer = document.getElementById('search-results');
+    const homeContainer = document.getElementById('home-song-list');
+    const targetContainer = mode === 'songs' ? resultsContainer : homeContainer; // Logic handles both
+    if (!targetContainer) return;
     if (!query.trim()) return;
-    songList.innerHTML = '<p style="color: var(--text-secondary); padding: 10px;">Searching...</p>';
+    
+    targetContainer.innerHTML = '<p style="color: var(--text-secondary); padding: 10px;">Searching...</p>';
+    
+    if (mode === 'lyrics') {
+        const lyricsResult = await getLyrics(query);
+        if (!lyricsResult || (!lyricsResult.plain && !lyricsResult.synced)) {
+            targetContainer.innerHTML = '<p style="color: var(--text-secondary); padding: 10px;">No lyrics found.</p>';
+            return;
+        }
+        const lyricsText = lyricsResult.plain || lyricsResult.synced;
+        targetContainer.innerHTML = `
+            <div style="padding: 16px; background: var(--bg-card); border-radius: 8px;">
+                <h3 style="margin-bottom: 8px; font-size: 1.1rem;">${escapeHtml(lyricsResult.title)}</h3>
+                <p style="color: var(--accent-color); margin-bottom: 16px; font-size: 0.9rem;">${escapeHtml(lyricsResult.artist)}</p>
+                <div style="white-space: pre-wrap; line-height: 1.6; color: var(--text-primary); font-size: 0.9rem;">${escapeHtml(lyricsText)}</div>
+            </div>
+        `;
+        return;
+    }
+
     const results = await searchMusic(query);
     currentPlaylistContext = results;
-    if (results.length === 0) { songList.innerHTML = '<p style="color: var(--text-secondary); padding: 10px;">No results found.</p>'; return; }
-    renderSongCards(results, songList, currentPlaylistContext);
+    
+    if (results.length === 0) {
+        targetContainer.innerHTML = '<p style="color: var(--text-secondary); padding: 10px;">No results found.</p>';
+        return;
+    }
+    renderSongList(results, targetContainer, currentPlaylistContext);
 }
-function renderSongCards(songs, container, playlistContext) {
+
+function renderSongList(songs, container, playlistContext) {
     container.innerHTML = '';
     songs.forEach(song => {
-        const card = document.createElement('div'); card.className = 'song-card';
-        card.innerHTML = `<img src="${song.thumbnail}" alt="${escapeHtml(song.title)}"><h4>${escapeHtml(song.title)}</h4><p>${escapeHtml(song.channel || 'Unknown')}</p>`;
-        card.addEventListener('click', () => { playSong(song, playlistContext); });
-        container.appendChild(card);
+        const item = document.createElement('div');
+        item.className = 'song-item';
+        
+        const isLiked = isSongLiked(song.videoId);
+        const isDownloaded = isSongDownloaded(song.videoId);
+        
+        item.innerHTML = `
+            <img src="${song.thumbnail}" alt="${escapeHtml(song.title)}">
+            <div class="song-item-info">
+                <h4>${escapeHtml(song.title)}</h4>
+                <p>${escapeHtml(song.channel || 'Unknown')}</p>
+            </div>
+            <div class="song-item-actions">
+                <button class="like-btn ${isLiked ? 'liked' : ''}" data-id="${song.videoId}">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="${isLiked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                </button>
+                <button class="download-btn ${isDownloaded ? 'downloaded' : ''}" data-id="${song.videoId}">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                </button>
+            </div>
+        `;
+        
+        item.addEventListener('click', (e) => {
+            if (e.target.closest('.like-btn') || e.target.closest('.download-btn')) return;
+            playSong(song, playlistContext);
+        });
+        
+        item.querySelector('.like-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            const liked = toggleLike(song);
+            const btn = e.currentTarget;
+            btn.classList.toggle('liked', liked);
+            btn.querySelector('svg').setAttribute('fill', liked ? 'currentColor' : 'none');
+            showToast(liked ? 'Added to Liked' : 'Removed from Liked');
+        });
+        
+        item.querySelector('.download-btn').addEventListener('click', async (e) => {
+            e.stopPropagation();
+            if (isSongDownloaded(song.videoId)) { showToast('Already downloaded'); return; }
+            showToast('Downloading...');
+            const audioData = await getAudioUrl(song.videoId);
+            if (audioData) {
+                await downloadSong(song, audioData.audioUrl);
+                const btn = e.currentTarget;
+                btn.classList.add('downloaded');
+                showToast('Download complete!');
+            } else {
+                showToast('Download failed.');
+            }
+        });
+        
+        container.appendChild(item);
     });
 }
 
 function setupPlayerControls() {
     const closeBtn = document.getElementById('close-player-btn');
     if (closeBtn) { closeBtn.addEventListener('click', () => { document.getElementById('player-screen').classList.remove('open'); }); }
+    
     const playPauseBtn = document.getElementById('play-pause-btn');
     if (playPauseBtn) { playPauseBtn.addEventListener('click', () => { togglePlay(); const playIcon = document.getElementById('play-icon'); const pauseIcon = document.getElementById('pause-icon'); playIcon.classList.toggle('hidden'); pauseIcon.classList.toggle('hidden'); }); }
+    
     const nextBtn = document.getElementById('next-btn'); if (nextBtn) nextBtn.addEventListener('click', nextSong);
     const prevBtn = document.getElementById('prev-btn'); if (prevBtn) prevBtn.addEventListener('click', prevSong);
+    
     const progressTrack = document.getElementById('progress-track');
     if (progressTrack) { progressTrack.addEventListener('click', (e) => { const track = e.currentTarget; const clickX = e.clientX - track.getBoundingClientRect().left; const percentage = (clickX / track.offsetWidth) * 100; seekTo(percentage); }); }
-    const copyBtn = document.getElementById('copy-lyrics-btn');
-    if (copyBtn) { copyBtn.addEventListener('click', () => { const lyricsContent = document.getElementById('lyrics-content').innerText; if (lyricsContent) { navigator.clipboard.writeText(lyricsContent); showToast('Lyrics copied!'); } }); }
+    
+    const openLyricsBtn = document.getElementById('open-lyrics-btn');
+    if (openLyricsBtn) {
+        openLyricsBtn.addEventListener('click', () => {
+            document.getElementById('lyrics-overlay').classList.remove('hidden');
+        });
+    }
+    
+    const closeLyricsBtn = document.getElementById('close-lyrics-btn');
+    if (closeLyricsBtn) {
+        closeLyricsBtn.addEventListener('click', () => {
+            document.getElementById('lyrics-overlay').classList.add('hidden');
+        });
+    }
+    
+    const copyLyricsBtn = document.getElementById('copy-lyrics-btn');
+    if (copyLyricsBtn) {
+        copyLyricsBtn.addEventListener('click', () => {
+            const lyricsContent = document.getElementById('lyrics-content').innerText;
+            if (lyricsContent) { navigator.clipboard.writeText(lyricsContent); showToast('Lyrics copied!'); }
+        });
+    }
+
+    const playerLikeBtn = document.getElementById('player-like-btn');
+    if (playerLikeBtn) {
+        playerLikeBtn.addEventListener('click', () => {
+            // This will be updated dynamically when a song plays
+            showToast('Like feature coming soon');
+        });
+    }
+    
+    const playerDownloadBtn = document.getElementById('player-download-btn');
+    if (playerDownloadBtn) {
+        playerDownloadBtn.addEventListener('click', () => {
+            showToast('Download feature coming soon');
+        });
+    }
 }
 
 function setupLibrary() {
@@ -167,24 +294,24 @@ function setupLibrary() {
 function renderLikedSongs(container) {
     const liked = getLikedSongs();
     if (liked.length === 0) { container.innerHTML = '<p style="color: var(--text-secondary); padding: 10px;">No liked songs yet.</p>'; return; }
-    renderSongCards(liked, container, liked);
+    renderSongList(liked, container, liked);
 }
 function renderDownloadedSongs(container) {
     const downloads = getDownloadedSongs();
     if (downloads.length === 0) { container.innerHTML = '<p style="color: var(--text-secondary); padding: 10px;">No downloaded songs yet.</p>'; return; }
-    renderSongCards(downloads, container, downloads);
+    renderSongList(downloads, container, downloads);
 }
 async function renderPlaylists(container) {
     const playlists = getAllPlaylists();
     if (playlists.length === 0) { container.innerHTML = '<p style="color: var(--text-secondary); padding: 10px;">No playlists yet.</p>'; return; }
     container.innerHTML = '';
     for (const pl of playlists) {
-        const div = document.createElement('div'); div.className = 'song-card';
+        const div = document.createElement('div'); div.className = 'song-item';
         let coverUrl = 'assets/images/default-playlist.png';
         if (pl.cover && pl.cover.type === 'collage') { coverUrl = await generatePlaylistCollage(pl.cover.images); }
         else if (pl.cover && pl.cover.type === 'single') { coverUrl = pl.cover.images[0]; }
         else if (typeof pl.cover === 'string') { coverUrl = pl.cover; }
-        div.innerHTML = `<img src="${coverUrl}" alt="${escapeHtml(pl.name)}"><h4>${escapeHtml(pl.name)}</h4><p>${pl.songs.length} songs</p>`;
+        div.innerHTML = `<img src="${coverUrl}" alt="${escapeHtml(pl.name)}"><div class="song-item-info"><h4>${escapeHtml(pl.name)}</h4><p>${pl.songs.length} songs</p></div>`;
         container.appendChild(div);
     }
 }
