@@ -1,339 +1,64 @@
 /* css/player.css */
+#player-screen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: var(--bg-primary); z-index: 500; display: flex; flex-direction: column; transform: translateY(100%); transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1); }
+#player-screen.open { transform: translateY(0); }
+#player-card { flex: 1; display: flex; flex-direction: column; padding: 24px 20px; background: var(--bg-primary); transition: background 0.8s ease; overflow: hidden; }
+.player-top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.player-top-bar button { background: none; border: none; color: var(--text-primary); cursor: pointer; padding: 8px; }
+.player-top-bar span { font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; }
+.player-art-container { display: flex; justify-content: center; margin-bottom: 30px; flex-shrink: 0; }
+.player-art { width: 65vw; max-width: 280px; aspect-ratio: 1 / 1; border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7); object-fit: cover; background-color: var(--bg-card); }
 
-/* ========================================== */
-/* PLAYER SCREEN OVERLAY                      */
-/* ========================================== */
-#player-screen {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background-color: var(--bg-primary);
-    z-index: 500;
-    display: flex;
-    flex-direction: column;
-    transform: translateY(100%);
-    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
-}
+.player-info { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-shrink: 0; }
+.player-text { text-align: left; flex: 1; overflow: hidden; }
+.player-text h3 { font-size: 1.4rem; font-weight: 700; color: var(--text-primary); margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.player-text p { font-size: 0.9rem; color: var(--text-secondary); }
+.player-action-btn { background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 8px; transition: color 0.2s ease; }
+.player-action-btn:hover { color: var(--text-primary); }
+.player-action-btn.liked { color: #ef4444; }
+.player-action-btn.downloaded { color: var(--accent-color); }
 
-#player-screen.open {
-    transform: translateY(0);
-}
+.player-progress-container { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; flex-shrink: 0; }
+.player-progress-container span { font-size: 0.75rem; color: var(--text-secondary); font-variant-numeric: tabular-nums; width: 35px; }
+.progress-track { flex: 1; height: 4px; background-color: var(--bg-card-hover); border-radius: 2px; cursor: pointer; overflow: hidden; }
+.progress-fill { height: 100%; width: 0%; background-color: var(--text-primary); border-radius: 2px; transition: width 0.1s linear; }
 
-/* ========================================== */
-/* DYNAMIC BACKGROUND                         */
-/* ========================================== */
-/* This is the gradient that matches the thumbnail */
-#player-card {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    padding: 24px 20px;
-    background: var(--bg-primary); /* Fallback */
-    transition: background 0.8s ease;
-    overflow: hidden;
-}
+.player-controls { display: flex; justify-content: center; align-items: center; gap: 28px; margin-bottom: 20px; flex-shrink: 0; }
+.player-controls button { background: none; border: none; color: var(--text-secondary); cursor: pointer; transition: color 0.2s ease, transform 0.1s ease; padding: 4px; }
+.player-controls button:active { transform: scale(0.9); }
+.player-controls button:hover { color: var(--text-primary); }
+.play-main-button { width: 64px; height: 64px; border-radius: 50%; background-color: var(--text-primary) !important; color: var(--bg-primary) !important; display: flex; justify-content: center; align-items: center; }
+.play-main-button:hover { background-color: var(--accent-color) !important; color: #ffffff !important; }
 
-/* ========================================== */
-/* TOP BAR                                    */
-/* ========================================== */
-.player-top-bar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-}
+.open-lyrics-btn { background: none; border: 1px solid var(--border-color); color: var(--text-primary); padding: 12px; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: background-color 0.2s ease; margin-top: auto; }
+.open-lyrics-btn:hover { background-color: var(--bg-card-hover); }
 
-.player-top-bar button {
-    background: none;
-    border: none;
-    color: var(--text-primary);
-    cursor: pointer;
-    padding: 8px;
-}
+/* LYRICS OVERLAY */
+.lyrics-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: var(--bg-primary); z-index: 600; display: flex; flex-direction: column; padding: 24px 20px; transition: transform 0.3s ease; }
+.lyrics-overlay.hidden { transform: translateY(100%); }
+.lyrics-overlay-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.lyrics-overlay-header button { background: none; border: none; color: var(--text-primary); cursor: pointer; padding: 8px; }
+.lyrics-overlay-header span { font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; }
+.lyrics-content { flex: 1; overflow-y: auto; text-align: center; padding-bottom: 50px; }
+.lyric-line { font-size: 1rem; color: var(--text-muted); line-height: 1.8; margin: 12px 0; transition: color 0.3s ease, transform 0.3s ease; }
+.lyric-line.active { color: var(--text-primary); font-weight: 700; font-size: 1.1rem; transform: scale(1.05); }
 
-.player-top-bar span {
-    font-size: 0.75rem;
-    color: var(--text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-/* ========================================== */
-/* ALBUM ART                                  */
-/* ========================================== */
-.player-art-container {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 30px;
-    flex-shrink: 0;
-}
-
-.player-art {
-    width: 65vw;
-    max-width: 280px;
-    aspect-ratio: 1 / 1;
-    border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
-    object-fit: cover;
-    background-color: var(--bg-card);
-}
-
-/* ========================================== */
-/* TRACK INFO                                 */
-/* ========================================== */
-.player-info {
-    text-align: center;
-    margin-bottom: 24px;
-    flex-shrink: 0;
-}
-
-.player-info h3 {
-    font-size: 1.4rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    margin-bottom: 6px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.player-info p {
-    font-size: 0.9rem;
-    color: var(--text-secondary);
-}
-
-/* ========================================== */
-/* PROGRESS BAR & TIMING                      */
-/* ========================================== */
-.player-progress-container {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 20px;
-    flex-shrink: 0;
-}
-
-.player-progress-container span {
-    font-size: 0.75rem;
-    color: var(--text-secondary);
-    font-variant-numeric: tabular-nums;
-    width: 35px;
-}
-
-.progress-track {
-    flex: 1;
-    height: 4px;
-    background-color: var(--bg-card-hover);
-    border-radius: 2px;
-    cursor: pointer;
-    overflow: hidden;
-}
-
-.progress-fill {
-    height: 100%;
-    width: 0%;
-    background-color: var(--text-primary);
-    border-radius: 2px;
-    transition: width 0.1s linear;
-}
-
-/* ========================================== */
-/* PLAYBACK CONTROLS                          */
-/* ========================================== */
-.player-controls {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 28px;
-    margin-bottom: 30px;
-    flex-shrink: 0;
-}
-
-.player-controls button {
-    background: none;
-    border: none;
-    color: var(--text-secondary);
-    cursor: pointer;
-    transition: color 0.2s ease, transform 0.1s ease;
-    padding: 4px;
-}
-
-.player-controls button:active {
-    transform: scale(0.9);
-}
-
-.player-controls button:hover {
-    color: var(--text-primary);
-}
-
-.play-main-button {
-    width: 64px;
-    height: 64px;
-    border-radius: 50%;
-    background-color: var(--text-primary) !important;
-    color: var(--bg-primary) !important;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.play-main-button:hover {
-    background-color: var(--accent-color) !important;
-    color: #ffffff !important;
-}
-
-/* ========================================== */
-/* LYRICS CARD                                */
-/* ========================================== */
-.lyrics-card {
-    flex: 1;
-    background-color: rgba(0, 0, 0, 0.3);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border-radius: 16px;
-    padding: 20px;
-    overflow-y: auto;
-    position: relative;
-    scrollbar-width: none; /* Firefox */
-}
-
-.lyrics-card::-webkit-scrollbar {
-    display: none; /* Chrome, Safari */
-}
-
-.lyrics-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-    position: sticky;
-    top: -20px;
-    background: linear-gradient(180deg, rgba(18,18,18,0.9) 0%, rgba(18,18,18,0) 100%);
-    padding-top: 10px;
-    padding-bottom: 10px;
-    z-index: 2;
-}
-
-.lyrics-header span {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-.copy-btn {
-    background: none;
-    border: none;
-    color: var(--text-secondary);
-    cursor: pointer;
-    font-size: 0.75rem;
-    padding: 4px 8px;
-    border-radius: 4px;
-    transition: background-color 0.2s ease, color 0.2s ease;
-}
-
-.copy-btn:hover {
-    background-color: rgba(255,255,255,0.1);
-    color: var(--text-primary);
-}
-
-.lyrics-content {
-    text-align: center;
-    padding-bottom: 50px;
-}
-
-.lyric-line {
-    font-size: 1rem;
-    color: var(--text-muted);
-    line-height: 1.8;
-    margin: 12px 0;
-    transition: color 0.3s ease, transform 0.3s ease, font-weight 0.3s ease;
-    transform-origin: center;
-}
-
-.lyric-line.active {
-    color: var(--text-primary);
-    font-weight: 700;
-    font-size: 1.1rem;
-    transform: scale(1.05);
-}
-
-/* ========================================== */
-/* TOAST NOTIFICATIONS                        */
-/* ========================================== */
-.toast {
-    position: fixed;
-    bottom: 100px;
-    left: 50%;
-    transform: translateX(-50%) translateY(20px);
-    background-color: #333333;
-    color: #ffffff;
-    padding: 12px 24px;
-    border-radius: 24px;
-    font-size: 0.85rem;
-    font-weight: 500;
-    opacity: 0;
-    transition: opacity 0.3s ease, transform 0.3s ease;
-    z-index: 9999;
-    pointer-events: none;
-    white-space: nowrap;
-}
-
-.toast-visible {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-}
-
-/* ========================================== */
-/* WHATMUSIC RESULT CARD                      */
-/* ========================================== */
-.result-card {
-    background-color: var(--bg-card);
-    border-radius: 12px;
-    padding: 20px;
-    margin-top: 20px;
-}
-
-.result-card h4 {
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    margin-bottom: 6px;
-}
-
-.result-artist {
-    font-size: 0.9rem;
-    color: var(--accent-color);
-    margin-bottom: 12px;
-}
-
-.result-meta {
-    font-size: 0.8rem;
-    color: var(--text-secondary);
-    margin-bottom: 6px;
-}
-
-.result-links {
-    display: flex;
-    gap: 12px;
-    margin-top: 16px;
-}
-
-.platform-link {
-    background-color: var(--bg-card-hover);
-    color: var(--text-primary);
-    text-decoration: none;
-    padding: 8px 16px;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    transition: background-color 0.2s ease;
-}
-
-.platform-link:hover {
-    background-color: var(--accent-color);
-    color: #ffffff;
-}
+/* OTHER STYLES (Login, Profile, Toasts, etc.) */
+.toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(20px); background-color: #333333; color: #ffffff; padding: 12px 24px; border-radius: 24px; font-size: 0.85rem; font-weight: 500; opacity: 0; transition: opacity 0.3s ease, transform 0.3s ease; z-index: 9999; pointer-events: none; white-space: nowrap; }
+.toast-visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+.login-screen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: var(--bg-primary); display: flex; justify-content: center; align-items: center; z-index: 400; }
+.login-content { width: 100%; max-width: 360px; padding: 24px; text-align: center; }
+.login-title { font-size: 1.8rem; font-weight: 800; margin-bottom: 8px; color: var(--text-primary); }
+.login-subtitle { font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 32px; }
+.login-input { width: 100%; padding: 14px 16px; border-radius: 8px; border: 1px solid var(--border-color); background-color: var(--bg-card); color: var(--text-primary); font-size: 0.95rem; margin-bottom: 12px; outline: none; }
+.login-input:focus { border-color: var(--accent-color); }
+.login-btn { width: 100%; padding: 14px; border-radius: 8px; border: none; background-color: var(--accent-color); color: #ffffff; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: background-color 0.2s ease; margin-top: 8px; }
+.login-btn:hover { background-color: var(--accent-hover); }
+.login-toggle-btn { background: none; border: none; color: var(--text-secondary); font-size: 0.85rem; cursor: pointer; margin-top: 16px; text-decoration: underline; }
+.avatar-upload-label { display: block; width: 100%; padding: 12px; border: 1px dashed var(--border-color); border-radius: 8px; color: var(--text-secondary); font-size: 0.85rem; cursor: pointer; margin-bottom: 12px; text-align: center; }
+.profile-card { display: flex; flex-direction: column; align-items: center; padding: 24px; background-color: var(--bg-card); border-radius: 12px; }
+.profile-avatar { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; margin-bottom: 16px; background-color: var(--bg-primary); }
+.profile-card h4 { font-size: 1.2rem; font-weight: 700; color: var(--text-primary); margin-bottom: 4px; }
+.profile-card p { font-size: 0.85rem; color: var(--text-secondary); }
+.settings-list { display: flex; flex-direction: column; gap: 12px; }
+.setting-item { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; background-color: var(--bg-card); border-radius: 8px; font-size: 0.9rem; color: var(--text-primary); }
+.theme-select { background-color: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-color); padding: 8px; border-radius: 6px; font-family: inherit; }
