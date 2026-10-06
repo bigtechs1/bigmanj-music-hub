@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ᑲіgmᥲᥒȷ mᥙsі᥊ һᥙᑲ</title>
     
-    <!-- ERROR CATCHER: This will show a red box if any script crashes -->
     <script>
         window.onerror = function(message, source, lineno, colno, error) {
             const errDiv = document.createElement('div');
@@ -14,14 +13,6 @@
             document.body.appendChild(errDiv);
             return false;
         };
-        window.addEventListener('error', function(event) {
-            if (event.target && (event.target.tagName === 'SCRIPT' || event.target.tagName === 'LINK')) {
-                const errDiv = document.createElement('div');
-                errDiv.style.cssText = 'position:fixed;top:0;left:0;width:100%;background:#ff0000;color:#ffffff;z-index:99999;padding:15px;font-size:14px;word-break:break-all;font-weight:bold;';
-                errDiv.innerHTML = 'MISSING FILE: Could not load ' + (event.target.src || event.target.href);
-                document.body.appendChild(errDiv);
-            }
-        }, true);
     </script>
 
     <link rel="stylesheet" href="css/theme.css">
@@ -81,13 +72,22 @@
         <main class="app-content">
             <!-- HOME SCREEN -->
             <div id="screen-home" class="screen active">
+                <h3 class="section-title">Recently Played</h3>
+                <div id="home-song-list" class="song-list-vertical"></div>
+            </div>
+            
+            <!-- SEARCH SCREEN -->
+            <div id="screen-search" class="screen">
                 <div class="search-bar">
                     <input type="text" id="search-input" placeholder="Search for songs, artists...">
                 </div>
-                <h3 class="section-title">Trending Now</h3>
-                <div id="song-list" class="song-list"></div>
+                <div class="search-tabs">
+                    <button class="search-tab active" data-search="songs">Songs</button>
+                    <button class="search-tab" data-search="lyrics">Lyrics</button>
+                </div>
+                <div id="search-results" class="song-list-vertical"></div>
             </div>
-            
+
             <!-- LIBRARY SCREEN -->
             <div id="screen-library" class="screen">
                 <h3 class="section-title">Your Library</h3>
@@ -96,17 +96,7 @@
                     <button class="library-tab" data-tab="downloaded">Downloaded</button>
                     <button class="library-tab" data-tab="playlists">Playlists</button>
                 </div>
-                <div id="library-content" class="library-content"></div>
-            </div>
-
-            <!-- WHATMUSIC SCREEN -->
-            <div id="screen-whatmusic" class="screen">
-                <h3 class="section-title">WhatMusic</h3>
-                <p class="whatmusic-desc">Upload a short audio clip to identify the song.</p>
-                <input type="file" id="whatmusic-file-input" accept="audio/*" class="login-input">
-                <button id="whatmusic-upload-button" class="login-btn" style="margin-top: 10px;">Identify Song</button>
-                <p id="whatmusic-status" class="whatmusic-status"></p>
-                <div id="whatmusic-result" class="hidden"></div>
+                <div id="library-content" class="song-list-vertical"></div>
             </div>
 
             <!-- PROFILE SCREEN -->
@@ -147,13 +137,13 @@
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
                 <span>Home</span>
             </button>
+            <button class="nav-item" data-target="search">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <span>Search</span>
+            </button>
             <button class="nav-item" data-target="library">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m16 6 4 14"></path><path d="M12 6v14"></path><path d="M8 8v12"></path><path d="M4 4v16"></path></svg>
                 <span>Library</span>
-            </button>
-            <button class="nav-item" data-target="whatmusic">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                <span>WhatMusic</span>
             </button>
             <button class="nav-item" data-target="profile">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
@@ -180,8 +170,16 @@
             </div>
 
             <div class="player-info">
-                <h3 id="player-title">Song Title</h3>
-                <p id="player-artist">Artist Name</p>
+                <div class="player-text">
+                    <h3 id="player-title">Song Title</h3>
+                    <p id="player-artist">Artist Name</p>
+                </div>
+                <button id="player-like-btn" class="player-action-btn">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                </button>
+                <button id="player-download-btn" class="player-action-btn">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                </button>
             </div>
 
             <div class="player-progress-container">
@@ -202,15 +200,21 @@
                 <button id="next-btn"><svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19" stroke="currentColor" stroke-width="2"></line></svg></button>
                 <button id="repeat-btn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg></button>
             </div>
-
-            <div id="lyrics-card" class="lyrics-card hidden">
-                <div class="lyrics-header">
-                    <span>Lyrics</span>
-                    <button id="copy-lyrics-btn" class="copy-btn">Copy</button>
-                </div>
-                <div id="lyrics-content" class="lyrics-content"></div>
-            </div>
+            
+            <button id="open-lyrics-btn" class="open-lyrics-btn">Lyrics</button>
         </div>
+    </div>
+
+    <!-- LYRICS OVERLAY -->
+    <div id="lyrics-overlay" class="lyrics-overlay hidden">
+        <div class="lyrics-overlay-header">
+            <button id="close-lyrics-btn">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+            <span>Lyrics</span>
+            <button id="copy-lyrics-btn" class="copy-btn">Copy</button>
+        </div>
+        <div id="lyrics-content" class="lyrics-content"></div>
     </div>
 
     <!-- SCRIPT LOADING -->
