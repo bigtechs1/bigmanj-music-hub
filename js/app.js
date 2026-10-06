@@ -11,7 +11,6 @@ import {
     isSongDownloaded, 
     downloadSong, 
     getAllPlaylists, 
-    getCurrentUser, 
     logoutUser 
 } from './library.js';
 import { 
@@ -24,13 +23,13 @@ import {
     generateDefaultAvatar 
 } from './auth.js';
 import { initWhatMusic } from './whatmusic.js';
-import { formatViews, showToast, debounce, escapeHtml } from './utils.js';
+import { formatViews, showToast, debounce, escapeHtml, generatePlaylistCollage, formatTime } from './utils.js';
 
 /* ========================================== */
 /* APP STATE                                  */
 /* ========================================== */
 let currentUser = null;
-let currentPlaylist = [];
+let currentPlaylistContext = [];
 let tempAvatarBase64 = null;
 let deferredPrompt = null;
 
@@ -50,17 +49,6 @@ document.addEventListener('DOMContentLoaded', () => {
     setupLoginForm();
     initWhatMusic();
     registerServiceWorker();
-
-    // Listen for song changes from player.js
-    document.addEventListener('songLoaded', (e) => {
-        const { song } = e.detail;
-        updatePlayerUI(song);
-    });
-
-    // Listen for time updates from player.js
-    document.addEventListener('timeUpdate', (e) => {
-        updateProgressBar(e.detail.currentTime, e.detail.duration);
-    });
 });
 
 /* ========================================== */
@@ -68,10 +56,11 @@ document.addEventListener('DOMContentLoaded', () => {
 /* ========================================== */
 function checkAuth() {
     if (isLoggedIn()) {
-        currentUser = getAuthUser();
+        currentUser = getAuthUser(); // Correctly using getAuthUser from auth.js
         document.getElementById('screen-login').classList.add('hidden');
         document.getElementById('app-container').classList.remove('hidden');
         renderProfile();
+        loadHomeFeed();
     } else {
         document.getElementById('screen-login').classList.remove('hidden');
         document.getElementById('app-container').classList.add('hidden');
@@ -83,7 +72,9 @@ function setupLoginForm() {
     const avatarLabel = document.getElementById('avatar-label-text');
     const createBtn = document.getElementById('create-account-btn');
     const toggleBtn = document.getElementById('login-toggle-btn');
-    
+
+    if (!avatarInput || !createBtn) return;
+
     // Handle avatar upload preview
     avatarInput.addEventListener('change', async (e) => {
         const file = e.target.files[0];
@@ -106,7 +97,6 @@ function setupLoginForm() {
         const password = document.getElementById('signup-password').value;
 
         if (createBtn.dataset.mode === 'login') {
-            // LOGIN MODE
             const result = login(username, password);
             if (result.success) {
                 showToast('Welcome back!');
@@ -115,7 +105,6 @@ function setupLoginForm() {
                 showToast(result.message);
             }
         } else {
-            // SIGNUP MODE
             const result = createAccount(name, username, email, password, tempAvatarBase64);
             if (result.success) {
                 showToast('Account created!');
@@ -134,7 +123,6 @@ function setupLoginForm() {
         const avatarContainer = document.querySelector('.avatar-upload-label');
 
         if (isLoginMode) {
-            // Switch to Signup
             createBtn.textContent = 'Create Account';
             createBtn.dataset.mode = 'signup';
             toggleBtn.textContent = 'Already have an account? Login';
@@ -142,7 +130,6 @@ function setupLoginForm() {
             emailInput.classList.remove('hidden');
             avatarContainer.classList.remove('hidden');
         } else {
-            // Switch to Login
             createBtn.textContent = 'Login';
             createBtn.dataset.mode = 'login';
             toggleBtn.textContent = 'Need an account? Sign Up';
@@ -165,10 +152,22 @@ function setupNavigation() {
             navItems.forEach(nav => nav.classList.remove('active'));
             item.classList.add('active');
             screens.forEach(screen => screen.classList.remove('active'));
-            
+
             const targetId = 'screen-' + item.dataset.target;
             const targetScreen = document.getElementById(targetId);
             if (targetScreen) targetScreen.classList.add('active');
+
+            // Refresh library when opening it
+            if (item.dataset.target === 'library') {
+                const activeTab = document.querySelector('.library-tab.active');
+                if (activeTab) {
+                    const type = activeTab.dataset.tab;
+                    const content = document.getElementById('library-content');
+                    if (type === 'liked') renderLikedSongs(content);
+                    if (type === 'downloaded') renderDownloadedSongs(content);
+                    if (type === 'playlists') renderPlaylists(content);
+                }
+            }
         });
     });
 }
@@ -178,8 +177,8 @@ function setupNavigation() {
 /* ========================================== */
 function setupTheme() {
     const themeSelect = document.getElementById('theme-select');
-    
-    // Load saved theme
+    if (!themeSelect) return;
+
     const savedTheme = localStorage.getItem('bigmanj-theme') || 'system';
     applyTheme(savedTheme);
     themeSelect.value = savedTheme;
@@ -209,52 +208,65 @@ function setupPWA() {
     window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
         deferredPrompt = e;
-        installContainer.classList.remove('hidden');
+        if (installContainer) installContainer.classList.remove('hidden');
     });
 
-    installBtn.addEventListener('click', async () => {
-        if (deferredPrompt) {
-            deferredPrompt.prompt();
-            const { outcome } = await deferredPrompt.userChoice;
-            if (outcome === 'accepted') {
-                showToast('App installed successfully!');
-                installContainer.classList.add('hidden');
+    if (installBtn) {
+        installBtn.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    showToast('App installed successfully!');
+                    if (installContainer) installContainer.classList.add('hidden');
+                }
+                deferredPrompt = null;
             }
-            deferredPrompt = null;
-        }
-    });
+        });
+    }
 
     window.addEventListener('appinstalled', () => {
-        installContainer.classList.add('hidden');
+        if (installContainer) installContainer.classList.add('hidden');
         showToast('App installed!');
     });
 }
 
 /* ========================================== */
-/* 5. SEARCH                                  */
+/* 5. SEARCH & HOME FEED                      */
 /* ========================================== */
-function setupSearch() {
-    const searchInput = document.getElementById('search-input');
-    const songList = document.getElementById('song-list');
-
-    const performSearch = debounce(async (query) => {
-        if (!query.trim()) return;
-        
-        songList.innerHTML = '<p style="color: var(--text-secondary);">Searching...</p>';
-        const results = await searchMusic(query);
-        currentPlaylist = results;
-        
-        if (results.length === 0) {
-            songList.innerHTML = '<p style="color: var(--text-secondary);">No results found.</p>';
-            return;
-        }
-        renderSongCards(results, songList);
-    }, 600);
-
-    searchInput.addEventListener('input', (e) => performSearch(e.target.value));
+function loadHomeFeed() {
+    performSearch('Montagem Rabeta');
 }
 
-function renderSongCards(songs, container) {
+function setupSearch() {
+    const searchInput = document.getElementById('search-input');
+    if (!searchInput) return;
+
+    const performSearchDebounced = debounce(async (query) => {
+        performSearch(query);
+    }, 600);
+
+    searchInput.addEventListener('input', (e) => performSearchDebounced(e.target.value));
+}
+
+async function performSearch(query) {
+    const songList = document.getElementById('song-list');
+    if (!songList) return;
+
+    if (!query.trim()) return;
+
+    songList.innerHTML = '<p style="color: var(--text-secondary); padding: 10px;">Searching...</p>';
+    const results = await searchMusic(query);
+    currentPlaylistContext = results;
+
+    if (results.length === 0) {
+        songList.innerHTML = '<p style="color: var(--text-secondary); padding: 10px;">No results found.</p>';
+        return;
+    }
+    renderSongCards(results, songList, currentPlaylistContext);
+}
+
+function renderSongCards(songs, container, playlistContext) {
     container.innerHTML = '';
     songs.forEach(song => {
         const card = document.createElement('div');
@@ -265,62 +277,60 @@ function renderSongCards(songs, container) {
             <p>${escapeHtml(song.channel || 'Unknown')}</p>
         `;
         card.addEventListener('click', () => {
-            playSong(song, currentPlaylist);
+            playSong(song, playlistContext);
         });
         container.appendChild(card);
     });
 }
 
 /* ========================================== */
-/* 6. PLAYER UI                              */
+/* 6. PLAYER CONTROLS (Links to player.js)    */
 /* ========================================== */
 function setupPlayerControls() {
-    document.getElementById('close-player-btn').addEventListener('click', () => {
-        document.getElementById('player-screen').classList.remove('open');
-    });
+    const closeBtn = document.getElementById('close-player-btn');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            document.getElementById('player-screen').classList.remove('open');
+        });
+    }
 
-    document.getElementById('play-pause-btn').addEventListener('click', () => {
-        togglePlay();
-        const playIcon = document.getElementById('play-icon');
-        const pauseIcon = document.getElementById('pause-icon');
-        playIcon.classList.toggle('hidden');
-        pauseIcon.classList.toggle('hidden');
-    });
+    const playPauseBtn = document.getElementById('play-pause-btn');
+    if (playPauseBtn) {
+        playPauseBtn.addEventListener('click', () => {
+            togglePlay();
+            const playIcon = document.getElementById('play-icon');
+            const pauseIcon = document.getElementById('pause-icon');
+            playIcon.classList.toggle('hidden');
+            pauseIcon.classList.toggle('hidden');
+        });
+    }
 
-    document.getElementById('next-btn').addEventListener('click', nextSong);
-    document.getElementById('prev-btn').addEventListener('click', prevSong);
+    const nextBtn = document.getElementById('next-btn');
+    if (nextBtn) nextBtn.addEventListener('click', nextSong);
 
-    document.getElementById('progress-track').addEventListener('click', (e) => {
-        const track = e.currentTarget;
-        const clickX = e.clientX - track.getBoundingClientRect().left;
-        const percentage = (clickX / track.offsetWidth) * 100;
-        seekTo(percentage);
-    });
+    const prevBtn = document.getElementById('prev-btn');
+    if (prevBtn) prevBtn.addEventListener('click', prevSong);
 
-    document.getElementById('copy-lyrics-btn').addEventListener('click', () => {
-        const lyricsContent = document.getElementById('lyrics-content').innerText;
-        if (lyricsContent) {
-            navigator.clipboard.writeText(lyricsContent);
-            showToast('Lyrics copied!');
-        }
-    });
-}
+    const progressTrack = document.getElementById('progress-track');
+    if (progressTrack) {
+        progressTrack.addEventListener('click', (e) => {
+            const track = e.currentTarget;
+            const clickX = e.clientX - track.getBoundingClientRect().left;
+            const percentage = (clickX / track.offsetWidth) * 100;
+            seekTo(percentage);
+        });
+    }
 
-function updatePlayerUI(song) {
-    document.getElementById('player-art').src = song.thumbnail;
-    document.getElementById('player-title').textContent = song.title;
-    document.getElementById('player-artist').textContent = song.channel || 'Unknown';
-    document.getElementById('player-screen').classList.add('open');
-    document.getElementById('play-icon').classList.add('hidden');
-    document.getElementById('pause-icon').classList.remove('hidden');
-}
-
-function updateProgressBar(currentTime, duration) {
-    if (!duration) return;
-    const progress = (currentTime / duration) * 100;
-    document.getElementById('progress-bar').style.width = `${progress}%`;
-    document.getElementById('current-time').textContent = formatTime(currentTime);
-    document.getElementById('total-time').textContent = formatTime(duration);
+    const copyBtn = document.getElementById('copy-lyrics-btn');
+    if (copyBtn) {
+        copyBtn.addEventListener('click', () => {
+            const lyricsContent = document.getElementById('lyrics-content').innerText;
+            if (lyricsContent) {
+                navigator.clipboard.writeText(lyricsContent);
+                showToast('Lyrics copied!');
+            }
+        });
+    }
 }
 
 /* ========================================== */
@@ -334,71 +344,91 @@ function setupLibrary() {
         tab.addEventListener('click', () => {
             tabs.forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
-            
+
             const type = tab.dataset.tab;
             if (type === 'liked') renderLikedSongs(content);
             if (type === 'downloaded') renderDownloadedSongs(content);
             if (type === 'playlists') renderPlaylists(content);
         });
     });
-
-    // Render liked songs by default
-    renderLikedSongs(content);
 }
 
 function renderLikedSongs(container) {
     const liked = getLikedSongs();
     if (liked.length === 0) {
-        container.innerHTML = '<p style="color: var(--text-secondary);">No liked songs yet.</p>';
+        container.innerHTML = '<p style="color: var(--text-secondary); padding: 10px;">No liked songs yet.</p>';
         return;
     }
-    renderSongCards(liked, container);
+    renderSongCards(liked, container, liked);
 }
 
 function renderDownloadedSongs(container) {
     const downloads = getDownloadedSongs();
     if (downloads.length === 0) {
-        container.innerHTML = '<p style="color: var(--text-secondary);">No downloaded songs yet.</p>';
+        container.innerHTML = '<p style="color: var(--text-secondary); padding: 10px;">No downloaded songs yet.</p>';
         return;
     }
-    renderSongCards(downloads, container);
+    renderSongCards(downloads, container, downloads);
 }
 
-function renderPlaylists(container) {
+async function renderPlaylists(container) {
     const playlists = getAllPlaylists();
     if (playlists.length === 0) {
-        container.innerHTML = '<p style="color: var(--text-secondary);">No playlists yet.</p>';
+        container.innerHTML = '<p style="color: var(--text-secondary); padding: 10px;">No playlists yet.</p>';
         return;
     }
+
     container.innerHTML = '';
-    playlists.forEach(pl => {
+
+    for (const pl of playlists) {
         const div = document.createElement('div');
         div.className = 'song-card';
+
+        let coverUrl = 'assets/images/default-playlist.png';
+
+        if (pl.cover && pl.cover.type === 'collage') {
+            coverUrl = await generatePlaylistCollage(pl.cover.images);
+        } else if (pl.cover && pl.cover.type === 'single') {
+            coverUrl = pl.cover.images[0];
+        } else if (typeof pl.cover === 'string') {
+            coverUrl = pl.cover;
+        }
+
         div.innerHTML = `
-            <img src="${pl.cover || 'assets/images/default-playlist.png'}" alt="${escapeHtml(pl.name)}">
+            <img src="${coverUrl}" alt="${escapeHtml(pl.name)}">
             <h4>${escapeHtml(pl.name)}</h4>
             <p>${pl.songs.length} songs</p>
         `;
         container.appendChild(div);
-    });
+    }
 }
 
 /* ========================================== */
 /* 8. PROFILE                                 */
 /* ========================================== */
 function setupProfile() {
-    document.getElementById('logout-btn').addEventListener('click', () => {
-        logout();
-        window.location.reload();
-    });
+    const logoutBtn = document.getElementById('logout-btn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+            logout();
+            window.location.reload();
+        });
+    }
 }
 
 function renderProfile() {
     if (!currentUser) return;
-    document.getElementById('profile-avatar').src = currentUser.avatar || generateDefaultAvatar(currentUser.name);
-    document.getElementById('profile-name').textContent = currentUser.name;
-    document.getElementById('profile-username').textContent = '@' + currentUser.username;
-    document.getElementById('profile-email').textContent = currentUser.email;
+    const avatarImg = document.getElementById('profile-avatar');
+    if (avatarImg) avatarImg.src = currentUser.avatar || generateDefaultAvatar(currentUser.name);
+
+    const nameEl = document.getElementById('profile-name');
+    if (nameEl) nameEl.textContent = currentUser.name;
+
+    const userEl = document.getElementById('profile-username');
+    if (userEl) userEl.textContent = '@' + currentUser.username;
+
+    const emailEl = document.getElementById('profile-email');
+    if (emailEl) emailEl.textContent = currentUser.email;
 }
 
 /* ========================================== */
