@@ -5,6 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ᑲіgmᥲᥒȷ mᥙsі᥊ һᥙᑲ</title>
     
+    <!-- ERROR CATCHER: This will show a red box if any script crashes -->
+    <script>
+        window.onerror = function(message, source, lineno, colno, error) {
+            const errDiv = document.createElement('div');
+            errDiv.style.cssText = 'position:fixed;top:0;left:0;width:100%;background:#ff0000;color:#ffffff;z-index:99999;padding:15px;font-size:14px;word-break:break-all;font-weight:bold;';
+            errDiv.innerHTML = 'CRASH ERROR: ' + message + '<br>FILE: ' + source + '<br>LINE: ' + lineno;
+            document.body.appendChild(errDiv);
+            return false;
+        };
+        window.addEventListener('error', function(event) {
+            if (event.target && (event.target.tagName === 'SCRIPT' || event.target.tagName === 'LINK')) {
+                const errDiv = document.createElement('div');
+                errDiv.style.cssText = 'position:fixed;top:0;left:0;width:100%;background:#ff0000;color:#ffffff;z-index:99999;padding:15px;font-size:14px;word-break:break-all;font-weight:bold;';
+                errDiv.innerHTML = 'MISSING FILE: Could not load ' + (event.target.src || event.target.href);
+                document.body.appendChild(errDiv);
+            }
+        }, true);
+    </script>
+
     <link rel="stylesheet" href="css/theme.css">
     <link rel="stylesheet" href="css/splash.css">
     <link rel="stylesheet" href="css/style.css">
