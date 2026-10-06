@@ -48,7 +48,6 @@ document.addEventListener('DOMContentLoaded', () => {
     setupPlayerControls();
     setupLoginForm();
     initWhatMusic();
-    registerServiceWorker();
 });
 
 /* ========================================== */
@@ -56,7 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
 /* ========================================== */
 function checkAuth() {
     if (isLoggedIn()) {
-        currentUser = getAuthUser(); // Correctly using getAuthUser from auth.js
+        currentUser = getAuthUser();
         document.getElementById('screen-login').classList.add('hidden');
         document.getElementById('app-container').classList.remove('hidden');
         renderProfile();
@@ -72,10 +71,9 @@ function setupLoginForm() {
     const avatarLabel = document.getElementById('avatar-label-text');
     const createBtn = document.getElementById('create-account-btn');
     const toggleBtn = document.getElementById('login-toggle-btn');
-
+    
     if (!avatarInput || !createBtn) return;
 
-    // Handle avatar upload preview
     avatarInput.addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (file) {
@@ -89,7 +87,6 @@ function setupLoginForm() {
         }
     });
 
-    // Handle Create Account / Login
     createBtn.addEventListener('click', () => {
         const name = document.getElementById('signup-name').value.trim();
         const username = document.getElementById('signup-username').value.trim();
@@ -115,7 +112,6 @@ function setupLoginForm() {
         }
     });
 
-    // Toggle between Login and Signup
     toggleBtn.addEventListener('click', () => {
         const isLoginMode = createBtn.dataset.mode === 'login';
         const nameInput = document.getElementById('signup-name');
@@ -152,12 +148,11 @@ function setupNavigation() {
             navItems.forEach(nav => nav.classList.remove('active'));
             item.classList.add('active');
             screens.forEach(screen => screen.classList.remove('active'));
-
+            
             const targetId = 'screen-' + item.dataset.target;
             const targetScreen = document.getElementById(targetId);
             if (targetScreen) targetScreen.classList.add('active');
 
-            // Refresh library when opening it
             if (item.dataset.target === 'library') {
                 const activeTab = document.querySelector('.library-tab.active');
                 if (activeTab) {
@@ -178,7 +173,7 @@ function setupNavigation() {
 function setupTheme() {
     const themeSelect = document.getElementById('theme-select');
     if (!themeSelect) return;
-
+    
     const savedTheme = localStorage.getItem('bigmanj-theme') || 'system';
     applyTheme(savedTheme);
     themeSelect.value = savedTheme;
@@ -252,13 +247,13 @@ function setupSearch() {
 async function performSearch(query) {
     const songList = document.getElementById('song-list');
     if (!songList) return;
-
+    
     if (!query.trim()) return;
-
+    
     songList.innerHTML = '<p style="color: var(--text-secondary); padding: 10px;">Searching...</p>';
     const results = await searchMusic(query);
     currentPlaylistContext = results;
-
+    
     if (results.length === 0) {
         songList.innerHTML = '<p style="color: var(--text-secondary); padding: 10px;">No results found.</p>';
         return;
@@ -284,7 +279,7 @@ function renderSongCards(songs, container, playlistContext) {
 }
 
 /* ========================================== */
-/* 6. PLAYER CONTROLS (Links to player.js)    */
+/* 6. PLAYER CONTROLS                         */
 /* ========================================== */
 function setupPlayerControls() {
     const closeBtn = document.getElementById('close-player-btn');
@@ -344,7 +339,7 @@ function setupLibrary() {
         tab.addEventListener('click', () => {
             tabs.forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
-
+            
             const type = tab.dataset.tab;
             if (type === 'liked') renderLikedSongs(content);
             if (type === 'downloaded') renderDownloadedSongs(content);
@@ -377,15 +372,15 @@ async function renderPlaylists(container) {
         container.innerHTML = '<p style="color: var(--text-secondary); padding: 10px;">No playlists yet.</p>';
         return;
     }
-
+    
     container.innerHTML = '';
-
+    
     for (const pl of playlists) {
         const div = document.createElement('div');
         div.className = 'song-card';
-
+        
         let coverUrl = 'assets/images/default-playlist.png';
-
+        
         if (pl.cover && pl.cover.type === 'collage') {
             coverUrl = await generatePlaylistCollage(pl.cover.images);
         } else if (pl.cover && pl.cover.type === 'single') {
@@ -420,26 +415,13 @@ function renderProfile() {
     if (!currentUser) return;
     const avatarImg = document.getElementById('profile-avatar');
     if (avatarImg) avatarImg.src = currentUser.avatar || generateDefaultAvatar(currentUser.name);
-
+    
     const nameEl = document.getElementById('profile-name');
     if (nameEl) nameEl.textContent = currentUser.name;
-
+    
     const userEl = document.getElementById('profile-username');
     if (userEl) userEl.textContent = '@' + currentUser.username;
-
+    
     const emailEl = document.getElementById('profile-email');
     if (emailEl) emailEl.textContent = currentUser.email;
-}
-
-/* ========================================== */
-/* 9. SERVICE WORKER                          */
-/* ========================================== */
-function registerServiceWorker() {
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('./sw.js')
-                .then(() => console.log('ServiceWorker registered'))
-                .catch(err => console.log('ServiceWorker registration failed:', err));
-        });
-    }
 }
